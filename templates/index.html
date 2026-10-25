@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f7f2" />
+    <title>AI Accommodation Description Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+    <main class="page-shell">
+        <header class="hero">
+            <div class="brand-mark" aria-hidden="true">Stay<span>well</span></div>
+            <p class="eyebrow">Thoughtful stays, beautifully described</p>
+            <h1>AI Accommodation<br /><span>Description Generator</span></h1>
+            <p class="hero-copy">Turn the details of your place into a polished listing guests will love.</p>
+        </header>
+
+        <div class="workspace">
+            <section class="form-card" aria-labelledby="form-heading">
+                <div class="section-heading">
+                    <span class="step-number">01</span>
+                    <div>
+                        <h2 id="form-heading">Tell us about your stay</h2>
+                        <p>A few details are all we need to get started.</p>
+                    </div>
+                </div>
+                <form id="descForm">
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="name">Property name</label>
+                            <input type="text" id="name" name="name" placeholder="e.g. The Garden House" autocomplete="off" required />
+                        </div>
+                        <div class="field">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" name="location" placeholder="e.g. Ojai, California" autocomplete="off" required />
+                        </div>
+                        <div class="field">
+                            <label for="room_type">Room or accommodation type</label>
+                            <input type="text" id="room_type" name="room_type" placeholder="e.g. Private cottage" required />
+                        </div>
+                        <div class="field">
+                            <label for="target_guests">Ideal guests</label>
+                            <input type="text" id="target_guests" name="target_guests" placeholder="e.g. Couples and solo travelers" required />
+                        </div>
+                        <div class="field field-full">
+                            <label for="amenities">Amenities <span class="label-note">Separate each with a comma</span></label>
+                            <textarea id="amenities" name="amenities" rows="3" placeholder="e.g. Garden, private patio, Wi-Fi" required></textarea>
+                        </div>
+                        <div class="field field-full">
+                            <label for="style">Writing style</label>
+                            <select id="style" name="style" required>
+                                <option value="Professional">Professional</option>
+                                <option value="Friendly">Friendly</option>
+                                <option value="Luxury">Luxury</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" id="generateBtn" class="primary-button">
+                        <span>Generate my description</span>
+                        <span class="button-arrow" aria-hidden="true">→</span>
+                    </button>
+                </form>
+                <p class="privacy-note"><span aria-hidden="true">✦</span> Your listing is based on the details you provide.</p>
+            </section>
+
+            <section class="result-card" aria-labelledby="result-heading" aria-live="polite">
+                <div class="section-heading">
+                    <span class="step-number step-number-muted">02</span>
+                    <div>
+                        <h2 id="result-heading">Your listing</h2>
+                        <p>A fresh description, ready to make your own.</p>
+                    </div>
+                </div>
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-illustration" aria-hidden="true">
+                        <span class="sun"></span><span class="hill hill-back"></span><span class="hill hill-front"></span>
+                        <span class="little-house">⌂</span>
+                    </div>
+                    <p>Your finished listing will appear here.</p>
+                    <span>Fill in your property details to begin.</span>
+                </div>
+                <div id="loading" class="loading-state hidden" role="status">
+                    <span class="spinner" aria-hidden="true"></span>
+                    <p>Finding just the right words...</p>
+                    <span>Your listing is on its way.</span>
+                </div>
+                <div id="result" class="listing-output hidden">
+                    <div class="listing-title-wrap">
+                        <p class="output-label">LISTING TITLE</p>
+                        <h3 id="outputTitle"></h3>
+                    </div>
+                    <div class="listing-description-wrap">
+                        <p class="output-label">DESCRIPTION</p>
+                        <p id="outputDescription"></p>
+                    </div>
+                    <div class="highlights-wrap">
+                        <p class="output-label">GUEST HIGHLIGHTS</p>
+                        <ul id="outputHighlights"></ul>
+                    </div>
+                    <button type="button" id="copyBtn" class="copy-button">
+                        <span aria-hidden="true">▢</span> Copy listing
+                    </button>
+                </div>
+                <div id="error" class="error-message hidden" role="alert"></div>
+            </section>
+        </div>
+        <footer>Made for hosts who care about the details.</footer>
+    </main>
+
+    <script>
+        const form = document.getElementById('descForm');
+        const loading = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+        const emptyState = document.getElementById('emptyState');
+        const outputTitle = document.getElementById('outputTitle');
+        const outputDescription = document.getElementById('outputDescription');
+        const outputHighlights = document.getElementById('outputHighlights');
+        const errorDiv = document.getElementById('error');
+        const copyBtn = document.getElementById('copyBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        let requestInProgress = false;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (requestInProgress) return;
+            requestInProgress = true;
+            loading.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            generateBtn.disabled = true;
+            const data = {
+                name: form.elements.namedItem('name').value.trim(),
+                location: form.elements.namedItem('location').value.trim(),
+                room_type: form.elements.namedItem('room_type').value.trim(),
+                amenities: form.elements.namedItem('amenities').value.trim(),
+                target_guests: form.elements.namedItem('target_guests').value.trim(),
+                style: form.elements.namedItem('style').value
+            };
+            try {
+                const resp = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const json = await resp.json();
+                if (resp.ok) {
+                    outputTitle.textContent = json.result.title;
+                    outputDescription.textContent = json.result.description;
+                    outputHighlights.replaceChildren(...json.result.highlights.map((highlight) => {
+                        const item = document.createElement('li');
+                        item.textContent = highlight;
+                        return item;
+                    }));
+                    resultDiv.classList.remove('hidden');
+                } else {
+                    errorDiv.textContent = json.error || 'An unexpected error occurred.';
+                    errorDiv.classList.remove('hidden');
+                    emptyState.classList.remove('hidden');
+                }
+            } catch {
+                emptyState.classList.remove('hidden');
+                errorDiv.textContent = 'We could not connect to the generator. Check your connection and try again.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                requestInProgress = false;
+                generateBtn.disabled = false;
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            const highlights = [...outputHighlights.querySelectorAll('li')]
+                .map((item) => `• ${item.textContent}`).join('\n');
+            const listing = `${outputTitle.textContent}\n\n${outputDescription.textContent}\n\nHighlights\n${highlights}`;
+            try {
+                await navigator.clipboard.writeText(listing);
+                copyBtn.innerHTML = '<span aria-hidden="true">✓</span> Copied';
+                window.setTimeout(() => {
+                    copyBtn.innerHTML = '<span aria-hidden="true">▢</span> Copy listing';
+                }, 1800);
+            } catch {
+                errorDiv.textContent = 'Clipboard access is unavailable in this browser. You can select and copy the listing text.';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# .gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+.python-version
+
+# Test and build output
+.pytest_cache/
+*.log
+dist/
+build/
+
+# IDE / editor folders
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Local environment and credentials
+.env
