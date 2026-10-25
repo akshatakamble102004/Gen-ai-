@@ -106,7 +106,7 @@ def generate():
 
     if not GEMINI_API_KEY:
         return jsonify({
-            "error": "Gemini is not configured yet. Add your API key to the local .env file and restart the app."
+            "error": "Gemini is not configured. Add GEMINI_API_KEY to this service's environment settings."
         }), 503
 
     client = None
@@ -163,4 +163,9 @@ def generate():
             client.close()
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+    app.run(
+        host='0.0.0.0',
+        port=int(os.environ.get("PORT", "10000")),
+        debug=False,
+        use_reloader=False,
+    )
